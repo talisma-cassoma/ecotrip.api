@@ -1,11 +1,36 @@
-FROM node:22.8.0-slim
+# ---------- Etapa 1: Build ----------
+FROM node:18-alpine AS builder
 
-RUN apt update && \
-    apt install openssl procps -y && \
-    npm install -g @nestjs/cli@10.4.8
+WORKDIR /app
 
-USER node
+# Copiar arquivos de dependência
+COPY package.json yarn.lock ./
 
-WORKDIR /home/node/app
+# Instalar dependências (sem dev)
+RUN yarn install --frozen-lockfile --production=false
 
-CMD [ "tail", "-f", "/dev/null" ]
+# Copiar o restante do código
+COPY . .
+
+# Gerar cliente Prisma
+RUN yarn prisma generate
+
+# Compilar o código TypeScript
+RUN yarn build
+
+
+# ---------- Etapa 2: Produção ----------
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Instalar dependências de produção
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile --production=true
+
+# Copiar dist e prisma
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+
+# Executa prisma db push e inicia a API
+CMD ["sh", "-c", "yarn prisma db push && node dist/main"]
