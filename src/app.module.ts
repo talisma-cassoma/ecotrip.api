@@ -3,9 +3,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MapsModule } from './maps/maps.module';
 import { ConfigModule } from '@nestjs/config';
-import { RoutesModule } from './routes/routes.module';
 import { PrismaModule } from './prisma/prisma.module';
-import { KafkaModule } from './kafka/kafka.module';
+import { UsersModule } from './users/users.module';
+import { TripsModule } from './trips/trips.module';
 
 @Module({
   imports: [
@@ -14,6 +14,8 @@ import { KafkaModule } from './kafka/kafka.module';
     }),
     PrismaModule,
     MapsModule,
+    UsersModule,
+    TripsModule,
     //RoutesModule,
     //KafkaModule,
   ],

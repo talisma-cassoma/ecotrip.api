@@ -13,29 +13,33 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Route {
+model Trip {
   id          String       @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
+  name        String?
   source      Place
   destination Place
   distance    Float
   duration    Float
-  freight     Float?
+  freight     Float
   directions  Json
+  status      String // 'requested' | 'accepted' | 'in_progress' | 'completed' | 'cancelled'
+  driver_id   String?      @db.ObjectId
+  driver      Driver?      @relation(fields: [driver_id], references: [id])
   created_at  DateTime     @default(now())
   updated_at  DateTime     @updatedAt
-  RouteDriver RouteDriver?
+  passengerId String
 }
 
-model RouteDriver {
+
+model Driver {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  route      Route    @relation(fields: [route_id], references: [id])
-  route_id   String   @unique @db.ObjectId
+  trips      Trip[]   // 1 driver → muitas trips
   points     Point[]
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  //status - iniciado, finalizado
+  status     String   // 'available' | 'on_trip' | etc.
 }
+
 
 type Place {
   name     String
