@@ -14,7 +14,7 @@ datasource db {
 }
 
 model Trip {
-  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
   name        String?
   source      Place
   destination Place
@@ -23,23 +23,47 @@ model Trip {
   freight     Float
   directions  Json
   status      String // 'requested' | 'accepted' | 'in_progress' | 'completed' | 'cancelled'
-  driver_id   String?      @db.ObjectId
-  driver      Driver?      @relation(fields: [driver_id], references: [id])
-  created_at  DateTime     @default(now())
-  updated_at  DateTime     @updatedAt
+
+  driver_id String? @db.ObjectId
+  driver    Driver? @relation("TripDriver", fields: [driver_id], references: [id])
+
+  interests TripInterest[]
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
   passengerId String
 }
 
-
 model Driver {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  trips      Trip[]   // 1 driver → muitas trips
-  points     Point[]
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  status     String   // 'available' | 'on_trip' | etc.
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  trips           Trip[]         @relation("TripDriver") // Trips atribuídas a esse driver
+  interestedIn    TripInterest[]
+  name            String
+  image           String
+  telephone       String
+  carModel        String
+  carPlate        String
+  carColor        String
+  rating          Int
+  complited_rides Int
+  points          Point[]
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @updatedAt
+  status          String // 'available' | 'on_trip' | etc.
 }
 
+model TripInterest {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  trip_id   String @db.ObjectId
+  driver_id String @db.ObjectId
+
+  trip   Trip   @relation(fields: [trip_id], references: [id])
+  driver Driver @relation(fields: [driver_id], references: [id])
+
+  createdAt DateTime @default(now())
+}
 
 type Place {
   name     String

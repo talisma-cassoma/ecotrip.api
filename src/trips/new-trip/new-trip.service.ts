@@ -1,80 +1,73 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { TripDto } from '../dto/trip.dto';
 
 @Injectable()
 export class NewTripService {
   constructor(private prisma: PrismaService) {}
 
   async createTrip(data: any) {
-    await this.prisma.trip.create({
+    try {
+      // Validação mínima (opcional)
+      if (!data.origin || !data.destination || !data.passengerId || !data.price) {
+        throw new BadRequestException('Campos obrigatórios ausentes.');
+      }
+
+      const createdTrip = await this.prisma.trip.create({
+        data: {
+          source: data.origin,
+          destination: data.destination,
+          distance: data.distance,
+          duration: data.duration,
+          freight: data.price,
+          directions: data.directions ?? {}, // se não vier, salva vazio
+          status: 'requested',
+          passengerId: data.passengerId,
+        },
+      });
+
+      return {
+        tripId: createdTrip.id,
+        message: 'Viagem criada com sucesso.',
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      console.error('Erro ao criar viagem:', error);
+      throw new InternalServerErrorException('Erro ao criar a viagem.');
+    }
+  }
+
+  async getNewTrips(){
+      const requestedTrips = await this.prisma.trip.findMany({
+      where: {
+        status: 'requested',
+      }
+    });
+    return requestedTrips
+  }
+
+ async confirmTrip(trip: TripDto) {
+    const updatedTrip = await this.prisma.trip.update({
+      where: {
+        id: trip.id,
+      },
       data: {
-        source: data.origin,
-        destination: data.destination,
-        distance: data.distance,
-        duration: data.duration,
-        freight: data.price,
-        directions: data.directions,
-        status: 'requested', 
-        passengerId: data.passengerId,
+        status: "accepted",          // exemplo: 'accepted'
+        driver: {
+          connect: {
+            id: trip.driver_id,       // o objeto trip.driver deve ter o id do driver
+          },
+        },
       },
     });
-    return ([
-    {
-        id: "1",
-        name: "brian Johnson",
-        description: "Experienced driver with a clean record.",
-        image: "https://picsum.photos/id/237/200/300",
-        telephone: "+1234567890",
-        carModel: "Toyota Corolla",
-        carPlate: "ABC-1234",
-        carColor: "Blue",
-    }, {
-        id: "2",
-        name: "John Doe",
-        description: "Friendly and reliable driver.",
-        image: "https://picsum.photos/id/237/200/300",
-        telephone: "+0987654321",
-        carModel: "Honda Civic",
-        carPlate: "XYZ-5678",
-        carColor: "Red",
-    },
-    {
-        id: "3",
-        name: "david oliver",
-        description: "Friendly and reliable driver.",
-        image: "https://picsum.photos/id/237/200/300",
-        telephone: "+0987654321",
-        carModel: "Ford Focus",
-        carPlate: "LMN-9012",
-        carColor: "Black",
-    }, {
-        id: "4",
-        name: "Paul Walker",
-        description: "Friendly and reliable driver.",
-        image: "https://picsum.photos/id/237/200/300",
-        telephone: "+0987654321",
-        carModel: "Chevrolet Malibu",
-        carPlate: "QRS-3456",
-        carColor: "White",
-    }, {
-        id: "5",
-        name: "mary jane watson",
-        description: "Friendly and reliable driver.",
-        image: "https://picsum.photos/id/237/200/300",
-        telephone: "+0987654321",
-        carModel: "Nissan Altima",
-        carPlate: "TUV-7890",
-        carColor: "Gray",
-    }, {
-        id: "6",
-        name: "peter parker",
-        description: "Friendly and reliable driver.",
-        image: "https://picsum.photos/id/237/200/300",
-        telephone: "+0987654321",
-        carModel: "Hyundai Elantra",
-        carPlate: "WXY-1234",
-        carColor: "Silver",
-    }
-])
+
+    return updatedTrip;
   }
 }

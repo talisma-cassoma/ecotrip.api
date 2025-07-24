@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 //import { SupabaseService } from 'src/auth/supabase.service'; // Supondo que você tem um serviço para verificar os tokens
 import { NewTripService } from './new-trip.service';
+import { TripDto } from '../dto/trip.dto';
 
 export interface ITrip {
   id: string;
@@ -53,5 +54,18 @@ export class NewTripController {
         // { ...trip, passengerId: found.id }
     );
   }
+  
+@Post('/confirm')
+async confirmtrip(
+  @Body() trip: TripDto,
+   @Headers('access_token') accessToken: string,
+   @Headers('refresh_token') refreshToken: string){``
+return this.tripService.confirmTrip(trip
+        // { ...trip, passengerId: found.id }
+    );
+
+   }
+
+
 }
 
