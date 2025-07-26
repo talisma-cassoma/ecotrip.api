@@ -10,17 +10,17 @@ export class TripDto {
     driver_id: string | null;
     passengerId: string;
     source: {
-        name: String
+        name: String;
         location: {
-            lat: number
-            lng: number
+            lat: number;
+            lng: number;
         }
     };
     destination: {
-        name: String
+        name: String;
         location: {
-            lat: number
-            lng: number
+            lat: number;
+            lng: number;
         }
     };
 }

@@ -7,7 +7,7 @@ import { PassengerService } from './passenger/passenger.service';
 import { PassengerGateway } from './passenger/passenger.gateway';
 import { NewTripService } from 'src/trips/new-trip/new-trip.service';
 import { NewTripController } from 'src/trips/new-trip/new-trip.controller';
-import { PrismaService } from 'src/prisma/prisma.service';
+
 
 @Module({
   controllers: [DriverController, PassengerController, NewTripController],

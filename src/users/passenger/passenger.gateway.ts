@@ -24,7 +24,6 @@ export class PassengerGateway {
   constructor(
     private driversService: DriverService,
     private passengerService: PassengerService,
-    private prismaService: PrismaService
   ) { }
 
   @SubscribeMessage('client:available-drivers')
@@ -44,13 +43,13 @@ export class PassengerGateway {
         tripId,
         passengerId,
       );
-
+      console.log("id:", passengerId)
       // Se a trip é válida, busca motoristas disponíveis
       await this.driversService.shareRequestedTrips();
 
     } catch (error) {
-      // Se a viagem não existir ou não pertencer ao passageiro
-      client.emit(`server:available-drivers/${trip.id}`, {
+      console.error('Erro ao verificar viagem:', error);
+      this.server.emit(`server:available-drivers/${payload.tripId}`, {
         error: 'Viagem inválida ou não encontrada.',
       });
     }

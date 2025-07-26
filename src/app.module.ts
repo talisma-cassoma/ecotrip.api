@@ -6,6 +6,7 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { TripsModule } from './trips/trips.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { TripsModule } from './trips/trips.module';
     TripsModule,
     //RoutesModule,
     //KafkaModule,
+    EventEmitterModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [AppService],

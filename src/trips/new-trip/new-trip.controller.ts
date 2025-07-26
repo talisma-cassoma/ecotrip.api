@@ -4,6 +4,8 @@ import {
   Post,
   Headers,
   UnauthorizedException,
+  Param,
+  Get,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 //import { SupabaseService } from 'src/auth/supabase.service'; // Supondo que você tem um serviço para verificar os tokens
@@ -19,7 +21,7 @@ export interface ITrip {
   distance: string;
 }
 
-@Controller('new-trip')
+@Controller('trips/new-trip')
 export class NewTripController {
   constructor(
     private prisma: PrismaService,
@@ -55,17 +57,44 @@ export class NewTripController {
     );
   }
   
-@Post('/confirm')
-async confirmtrip(
-  @Body() trip: TripDto,
-   @Headers('access_token') accessToken: string,
-   @Headers('refresh_token') refreshToken: string){``
-return this.tripService.confirmTrip(trip
-        // { ...trip, passengerId: found.id }
-    );
+ @Post('trips/:tripId/confirm')
+  async confirmTrip(
+    @Param('tripId') tripId: string,
+    @Body() body: { driver_id: string },
+    @Headers('access_token') accessToken: string,
+    @Headers('refresh_token') refreshToken: string
+  ) {
+    return this.tripService.confirmTrip(tripId, body.driver_id);
+  }
 
-   }
+  @Post('trips/:tripId/cancel/passenger')
+  async cancelTripByPassenger(
+    @Param('tripId') tripId: string,
+    @Body() body: { passenger_id: string; reason: string },
+    @Headers('access_token') accessToken: string,
+    @Headers('refresh_token') refreshToken: string
+  ) {
+    return this.tripService.cancelTripByPassenger(tripId, body.passenger_id, body.reason);
+  }
+
+  @Post('trips/:tripId/cancel/driver')
+  async cancelTripByDriver(
+    @Param('tripId') tripId: string,
+    @Body() body: { driver_id: string; reason: string },
+    @Headers('access_token') accessToken: string,
+    @Headers('refresh_token') refreshToken: string
+  ) {
+    return this.tripService.cancelTripByDriver(tripId, body.driver_id, body.reason);
+  }
+
+  @Get('trips/historic')
+  async getTripHistoric(
+    @Body() body: { user_id: string },
+    @Headers('access_token') accessToken: string,
+    @Headers('refresh_token') refreshToken: string
+  ) {
+    return this.tripService.getTripHistoric(body.user_id);
+  }}
 
 
-}
 

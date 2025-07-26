@@ -10,6 +10,8 @@ import { TripDto } from '../../trips/dto/trip.dto';
 import { NewTripService } from '../../trips/new-trip/new-trip.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DriverDto } from './dto/driver.dto';
+import { OnEvent } from '@nestjs/event-emitter';
+import { ObjectId } from 'bson';
 
 @WebSocketGateway({
   cors: {
@@ -30,64 +32,80 @@ export class DriverGateway {
     @ConnectedSocket() client: Socket,
     @MessageBody()
     payload: {
-      requestedTripList: TripDto[];
+      driver_id: string;
     },
   ) {
-    const newTrips = await this.newTripService.getNewTrips()
-    client.emit(`server:requested-trips`, {
+
+    //verificar se  driver_id existe 
+
+    //pegar as trips
+    const newTrips: TripDto[] = await this.newTripService.getNewTrips()
+    //comunicar ao driver
+    this.server.emit(`server:requested-trips`, {
       newTrips
     });
   }
 
-  @SubscribeMessage('client:accept-trip') //driver aceitou
+  @SubscribeMessage('client:accept-trip') //o driver aceitou
   async handletAcceptedTrip(
     @ConnectedSocket() client: Socket,
     @MessageBody()
     payload: {
       tripId: string,
-      driver: DriverDto
+      driver: any
     },
   ) {
     const { tripId, driver } = payload
     //registrar interesse
-    await this.prismaService.tripInterest.create({
-      data: {
-        trip: { connect: { id: tripId } },
-        driver: { connect: { id: driver.id } }
-      }
-    });
+    console.log("entrei no gateways com a tripID:", tripId, "e o driver:", driver)
 
+    // const relation = await this.prismaService.tripInterest.create({
+    //   data: {
+    //     trip_id: tripId,
+    //     driver_id: driver.id
+    //   }
+    // }); //o problema esta aqui
+
+    
     //pegar os drivers interessados
-    const availableDrives = await this.prismaService.trip.findUnique({
-      where: { id: tripId },
-      include: {
-        interests: {
-          include: {
-            driver: true
-          }
-        }
-      }
-    });
+    // const availableDrives = await this.prismaService.trip.findUnique({
+    //   where: { id: tripId },
+    //   include: {
+    //     interests: {
+    //       include: {
+    //         driver: true
+    //       }
+    //     }
+    //   }
+    // });
 
-    if (!availableDrives) {
-      client.emit(`server:available-drivers/${tripId}`, {});
-    }
+    // console.log("peguei of drivers availabes :", availableDrives)
+    // if (!availableDrives) {
+    //   client.emit(`server:available-drivers/${tripId}`, {});
+    // }
 
-    const availableDrivesDto: DriverDto[] = availableDrives.interests.map((interest) => ({
-      id: interest.driver.id,
-      name: interest.driver.name,
-      image: interest.driver.image,
-      telephone: interest.driver.telephone,
-      carModel: interest.driver.carModel,
-      carPlate: interest.driver.carPlate,
-      carColor: interest.driver.carColor,
-      rating: interest.driver.rating,
-      complited_rides: interest.driver.complited_rides,
-      status: interest.driver.status,
-    }));
+    // const availableDrivesDto: DriverDto[] = availableDrives.interests.map((interest) => ({
+    //   id: interest.driver.id,
+    //   name: interest.driver.name,
+    //   image: interest.driver.image,
+    //   telephone: interest.driver.telephone,
+    //   carModel: interest.driver.carModel,
+    //   carPlate: interest.driver.carPlate,
+    //   carColor: interest.driver.carColor,
+    //   rating: interest.driver.rating,
+    //   complited_rides: interest.driver.complited_rides,
+    //   status: interest.driver.status,
+    // }));
 
-    client.emit(`server:available-drivers/${tripId}`, {
-      availableDrivesDto
+    const drivers = driver
+    this.server.emit(`server:available-drivers/${tripId}`, driver);
+  }
+  @OnEvent('trip.created')
+  async handleNewTripEvent() {
+    const newTrips: TripDto[] = await this.newTripService.getNewTrips();
+
+    this.server.emit('server:requested-trips', {
+      newTrips,
     });
   }
 }

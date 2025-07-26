@@ -57,4 +57,33 @@ export class DriverService {
       requestedTripList: requestedTripsDto,
     });
   }
+  async syncDriver(driver: any) {
+     
+    await this.prisma.driver.upsert({
+            where: { id: driver.id },
+            update: {
+                name: driver.name,
+                image: driver.image,
+                telephone: driver.telephone,
+                carModel: driver.carModel,
+                carPlate: driver.carPlate,
+                carColor: driver.carColor,
+                rating: driver.rating ?? 0,
+                complited_rides: driver.complited_rides ?? 0,
+                status: driver.status ?? 'available',
+            },
+            create: {
+                id: driver.id,
+                name: driver.name,
+                image: driver.image,
+                telephone: driver.telephone,
+                carModel: driver.carModel,
+                carPlate: driver.carPlate,
+                carColor: driver.carColor,
+                rating: driver.rating ?? 0,
+                complited_rides: driver.complited_rides ?? 0,
+                status: driver.status ?? 'available',
+            },
+        });
+  }
 }
