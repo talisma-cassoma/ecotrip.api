@@ -2,22 +2,22 @@ import {
     Body,
     Controller,
     Post,
-    Headers,
-    UnauthorizedException,
     BadRequestException,
 } from '@nestjs/common';
+
 import { DriverService } from './driver.service';
 
 @Controller('driver')
 export class DriverController {
     constructor(private driverService: DriverService) { }
-    @Post('sync-driver')
-    async syncDriver(@Body() driver: any) {
-        if (!driver?.id) {
+    @Post('create')
+    async createDriver(@Body() driver: any) {;
+
+        if (!driver?.email || !driver?.password) {
             throw new BadRequestException('ID do driver é obrigatório.');
         }
-        await this.driverService.syncDriver(driver);
-        return { message: 'Driver sincronizado com sucesso' };
+        
+        const newDriver = await this.driverService.createDriver(driver);
+        return { message: 'Driver sincronizado com sucesso', driver: newDriver };
     }
-
 }

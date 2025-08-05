@@ -11,6 +11,8 @@ import { PassengerService } from './passenger.service';
 import { TripDto } from 'src/trips/dto/trip.dto';
 import { DriverDto } from '../driver/dto/driver.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import * as jwt from 'jsonwebtoken';
+import { NewTripService } from 'src/trips/new-trip/new-trip.service';
 
 @WebSocketGateway({
   cors: {
@@ -23,7 +25,9 @@ export class PassengerGateway {
 
   constructor(
     private driversService: DriverService,
-    private passengerService: PassengerService,
+    private newTripService: NewTripService,
+    private prismaService: PrismaService
+
   ) { }
 
   @SubscribeMessage('client:available-drivers')
@@ -31,25 +35,38 @@ export class PassengerGateway {
     @ConnectedSocket() client: Socket,
     @MessageBody()
     payload: {
-      passengerId: string;
-      tripId: string;
+      passenger_id: string;
+      trip_id: string;
     },
   ) {
-    const { passengerId, tripId } = payload;
-
-    let trip: TripDto
+    const { passenger_id, trip_id } = payload;
+    console.log("trip id:", trip_id)
     try {
-      trip = await this.passengerService.verifyPassengerTrip(
-        tripId,
-        passengerId,
-      );
-      console.log("id:", passengerId)
-      // Se a trip é válida, busca motoristas disponíveis
-      await this.driversService.shareRequestedTrips();
+
+      // const payload: jwt.JwtPayload = this.newTripService.verifyPublicTripToken(trip_id);
+      // console.log("trip token:", payload.tripToken)
+      // const trip = await this.prismaService.trip.findUnique({
+      //   where: { token: payload.tripToken },
+      //   include: { passenger: true, driver: { include: { user: true } } }
+      // });
+
+
+      const room = `trip:${trip_id}`;
+      client.join(room);
+
+      const roomInfo = this.server.sockets.adapter.rooms.get(room);
+      if (roomInfo?.has(client.id)) {
+        console.log(`✅ Cliente ${client.id} está na sala ${room}`);
+      } else {
+        console.log(`❌ Cliente ${client.id} NÃO está na sala ${room}`);
+      }
+
+      // emitir para todos na sala
+      //this.server.to(room).emit('trip:message', { msg: 'Bem-vindo à sala' });
 
     } catch (error) {
       console.error('Erro ao verificar viagem:', error);
-      this.server.emit(`server:available-drivers/${payload.tripId}`, {
+      this.server.emit(`server:available-drivers/${trip_id}`, {
         error: 'Viagem inválida ou não encontrada.',
       });
     }

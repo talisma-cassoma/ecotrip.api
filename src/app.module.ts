@@ -7,6 +7,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { TripsModule } from './trips/trips.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { SupasbaseModule } from './supasbase/supasbase.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     //RoutesModule,
     //KafkaModule,
     EventEmitterModule.forRoot(),
+    SupasbaseModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
@@ -13,8 +10,90 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  passenger
+  driver
+  admin
+}
+
+enum DriverStatus {
+  available
+  on_trip
+  offline
+}
+
+enum TripStatus {
+  requested
+  accepted
+  in_progress
+  completed
+  cancelled
+}
+
+model User {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  name       String
+  email      String   @unique
+  password   String
+  role       Role
+  image      String?
+  telephone  String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  driver        Driver?        @relation("driver")
+  refreshTokens UserRefreshToken[] @relation("user_refresh_tokens")
+  trips         Trip[]         @relation("passenger_trips")
+
+  TripCancellation TripCancellation[] @relation("user_cancel_trip")
+}
+
+model UserRefreshToken {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  token     String // (ou token hash)
+  user_id   String   @unique @db.ObjectId
+  user      User     @relation("user_refresh_tokens", fields: [user_id], references: [id])
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+model TripCancellation {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  trip    Trip   @relation("trip_cancellation", fields: [id], references: [id])
+  trip_id String 
+
+  cancelledBy Role
+  reason      String?
+  comment     String?
+
+  user    User   @relation("user_cancel_trip", fields: [user_id], references: [id])
+  user_id String @unique @db.ObjectId
+
+  createdAt DateTime @default(now())
+}
+
+model Driver {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId 
+  user    User   @relation("driver", fields: [id], references: [id])
+
+  car_model       String
+  car_plate       String
+  car_color       String
+  license_number  String
+  rating          Int
+  completed_rides Int
+  status          DriverStatus
+  points          Point[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  trips      Trip[]   @relation("driver_trips")
+}
+
 model Trip {
-  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  token   String     @unique @default(uuid()) // ou cuid()
   name        String?
   source      Place
   destination Place
@@ -22,47 +101,20 @@ model Trip {
   duration    Float
   freight     Float
   directions  Json
-  status      String // 'requested' | 'accepted' | 'in_progress' | 'completed' | 'cancelled'
+  status      TripStatus
+
+  passenger_id String @db.ObjectId
+  passenger    User   @relation("passenger_trips", fields: [passenger_id], references: [id])
 
   driver_id String? @db.ObjectId
-  driver    Driver? @relation("TripDriver", fields: [driver_id], references: [id])
+  driver    Driver? @relation("driver_trips", fields: [driver_id], references: [id])
 
-  interests TripInterest[]
+  interested_driver_ids String[] @db.ObjectId
 
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-  passengerId String
-}
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
-model Driver {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-
-  trips           Trip[]         @relation("TripDriver") // Trips atribuídas a esse driver
-  interestedIn    TripInterest[]
-  name            String
-  image           String
-  telephone       String
-  carModel        String
-  carPlate        String
-  carColor        String
-  rating          Int
-  complited_rides Int
-  points          Point[]
-  created_at      DateTime       @default(now())
-  updated_at      DateTime       @updatedAt
-  status          String // 'available' | 'on_trip' | etc.
-}
-
-model TripInterest {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-
-  trip_id   String @db.ObjectId
-  driver_id String @db.ObjectId
-
-  trip   Trip   @relation(fields: [trip_id], references: [id])
-  driver Driver @relation(fields: [driver_id], references: [id])
-
-  createdAt DateTime @default(now())
+  cancellation TripCancellation? @relation("trip_cancellation")
 }
 
 type Place {
