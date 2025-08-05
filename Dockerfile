@@ -18,7 +18,7 @@ RUN yarn prisma generate
 # Compilar o código TypeScript
 RUN yarn build
 
-
+RUN echo "Arquivos dentro de /app/dist no builder:" && ls -la /app/dist
 # ---------- Etapa 2: Produção ----------
 FROM node:18-alpine
 
@@ -30,7 +30,10 @@ RUN yarn install --frozen-lockfile --production=true
 
 # Copiar dist e prisma
 COPY --from=builder /app/dist ./dist
+RUN echo "Arquivos dentro de /app/dist na imagem final:" && ls -la /app/dist
+
 COPY --from=builder /app/prisma ./prisma
 
 # Executa prisma db push e inicia a API
-CMD ["sh", "-c", "yarn prisma db push && node dist/main"]
+# CMD [ "tail", "-f", "/dev/null" ]
+CMD ["sh", "-c", "yarn prisma db push && node dist/src/main"]
