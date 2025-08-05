@@ -1,8 +1,10 @@
 services:
   nest:
     build: .
-    volumes:
-      - .:/app
+    # volumes:
+    #   - .:/app
+    env_file:
+      - .env
     ports:
       - 3000:3000
       - 5555:5555
