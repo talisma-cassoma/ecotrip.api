@@ -121,7 +121,7 @@ type Place {
   name     String
   location Coord
 }
-
+ 
 type Point {
   location   Coord
   created_at DateTime @default(now())

@@ -11,6 +11,8 @@ import { SupabaseAuthService } from 'src/supasbase/supasbase.service';
 import { JwtService } from '@nestjs/jwt';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
+import { race } from 'rxjs';
+import { RabbitmqService } from 'src/rabbitmq/rabbitmq.service';
 
 
 @Module({
@@ -22,7 +24,8 @@ import { UsersService } from './users.service';
     PassengerGateway,
     NewTripService,
     SupabaseAuthService,
-  JwtService,
-  UsersService]
+    JwtService,
+    UsersService,
+    RabbitmqService]
 })
 export class UsersModule { }

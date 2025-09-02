@@ -11,10 +11,17 @@ import { JwtService } from "@nestjs/jwt";
 import { createNewUserAcessToken, createNewUserRefreshToken } from '../utils';
 import { NewTripService } from 'src/trips/new-trip/new-trip.service';
 import * as jwt from 'jsonwebtoken';
+import { RabbitmqService } from 'src/rabbitmq/rabbitmq.service';
 
 @Injectable()
 export class PassengerService {
-  constructor(private prismaService: PrismaService, private jwtService: JwtService, private newTripService: NewTripService) { }
+  constructor(
+    private prismaService: PrismaService, 
+    private jwtService: JwtService, 
+    private newTripService: NewTripService,
+    private rabbitmqService: RabbitmqService
+  
+  ) { }
 
   async createPassenger(passenger: any): Promise<PassengerDto> {
 
@@ -43,6 +50,17 @@ export class PassengerService {
       }
     });
 
+    await this.rabbitmqService.publish('users', {
+    type: 'user.created',
+    data: {
+      name: newPassenger.name,
+      email: newPassenger.email,
+      password: newPassenger.password, // hasheado
+      role: newPassenger.role,
+      telephone: newPassenger.telephone,
+      image: newPassenger.image,
+    },
+  });
 
     // Após criar o usuário com sucesso
     const payload = { userId: newPassenger.id, userRole: newPassenger.role };
