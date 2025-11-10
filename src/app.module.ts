@@ -9,7 +9,7 @@ import { TripsModule } from './trips/trips.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { SupasbaseModule } from './supasbase/supasbase.module';
 import { AuthModule } from './auth/auth.module';
-import { RabbitmqService } from './rabbitmq/rabbitmq.service';
+//import { RabbitmqService } from './rabbitmq/rabbitmq.service';
 
 @Module({
   imports: [
@@ -27,7 +27,9 @@ import { RabbitmqService } from './rabbitmq/rabbitmq.service';
     AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService, RabbitmqService],
+  providers: [AppService, 
+    //RabbitmqService
+  ],
 })
 export class AppModule {}
 

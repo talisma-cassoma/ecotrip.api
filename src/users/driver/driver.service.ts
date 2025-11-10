@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Driver } from '@prisma/client';
-import { DriverGateway } from './driver.gateway';
 import { TripDto } from 'src/trips/dto/trip.dto';
 import { DriverDto } from './dto/driver.dto';
 import { hash } from "bcryptjs";
@@ -12,7 +11,6 @@ import { createNewUserAcessToken, createNewUserRefreshToken } from '../utils';
 export class DriverService {
   constructor(
     private prismaService: PrismaService,
-    private driverGateway: DriverGateway,
     private jwtService: JwtService
   ) { }
 
@@ -57,10 +55,6 @@ export class DriverService {
       },
     }));
 
-    // Emite para todos os clientes conectados
-    this.driverGateway.server.emit('server:requested-trips', {
-      requestedTripList: requestedTripsDto,
-    });
   }
 
   async createDriver(driver: any): Promise<DriverDto> {

@@ -11,7 +11,7 @@ export class UsersController {
         @Body() body: { email: string, password: string },
     ) {
         const data = await this.userService.signInUser(body.email, body.password);
-        console.log("email: ",body.email," palavra passe :", body.password)
+        //console.log("email: ",body.email," palavra passe :", body.password)
         console.log("usuario: ", data)
         return data
     }
