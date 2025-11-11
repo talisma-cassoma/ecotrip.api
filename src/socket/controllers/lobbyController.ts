@@ -4,6 +4,7 @@ import { constants } from '../constants';
 import CustomMap from '../customMap';
 import Room from '../entities/room';
 
+
 /**
  * Controla o lobby (lista de rooms visíveis a todos os usuários).
  * Faz broadcast das atualizações enviadas pelo RoomsController.
@@ -39,6 +40,12 @@ export default class LobbyController {
     });
   }
 
+  /** 🔹 Desconexão de socket */
+  disconnect(socket: Socket): void {
+    console.log('[RoomsController] disconnect!!', socket.id);
+    this.lobbySockets.delete(socket);
+  }
+
   /** Escuta alterações vindas do RoomsController */
   #activateEventProxy(socket: Socket): void {
     const listener = (rooms: ReturnType<Room['toJSON']>[]) => {
@@ -56,7 +63,7 @@ export default class LobbyController {
   #sendLobbyUpdate(socket: Socket): void {
     const rooms = [...this.activeRooms.mappedValues()];
     console.log('[LobbyController] Sending lobby update to', socket.id, JSON.stringify(rooms));
-    socket.emit(constants.event.LOBBY_UPDATED, rooms);
+     this.#broadcastLobbyUpdate(rooms);
   }
 
   /** Broadcast: envia atualização para todos os sockets no lobby */

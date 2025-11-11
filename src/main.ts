@@ -47,6 +47,11 @@ async function bootstrap() {
     lobbyController.onNewConnection.bind(lobbyController)
   );
 
+  namespaces.lobby.eventEmitter.on(
+    constants.event.USER_DISCONNECTED,
+    lobbyController.disconnect.bind(lobbyController)
+  );
+
   // 🔹 Monta o routeConfig
   const routeConfig = Object.entries(namespaces).map(
     ([namespace, { controller, eventEmitter }]) => ({

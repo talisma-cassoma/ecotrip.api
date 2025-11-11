@@ -18,8 +18,10 @@ export interface RoomProps {
   users?: Set<Attendee>;           // passenger + múltiplos drivers que entraram (ofertas)
   assignedDriver?: Attendee | null; // driver escolhido pelo passenger
   status?: TripStatus;
-  origin: LocationPoint;
-  destination: LocationPoint;
+  distance?: number;
+  duration?: number;
+  origin?: LocationPoint;
+  destination?: LocationPoint;
   price?: number;
   created_at?: Date;
   updated_at?: Date;
@@ -32,8 +34,10 @@ export default class Room {
   assignedDriver?: Attendee | null;
   status: TripStatus;
   price?: number;
-  origin: LocationPoint;
-  destination: LocationPoint;
+  distance?: number;
+  duration?: number;
+  origin?: LocationPoint;
+  destination?: LocationPoint;
   created_at: Date;
   updated_at: Date;
 
@@ -44,6 +48,8 @@ export default class Room {
     assignedDriver = null,
     status = "requested",
     price,
+    distance,
+    duration,
     origin, 
     destination,
     created_at = new Date(),
@@ -58,6 +64,8 @@ export default class Room {
     this.status = status;
     this.origin = origin;
     this.price = price;
+    this.distance = distance;
+    this.duration = duration;
     this.destination = destination;
     this.created_at = created_at;
     this.updated_at = updated_at;
@@ -145,6 +153,9 @@ export default class Room {
       owner: this.owner.toJSON(),
       assignedDriver: this.assignedDriver ? this.assignedDriver.toJSON() : null,
       status: this.status,
+      price: this.price,
+      distance: this.distance,
+      duration: this.duration,
       origin: this.origin,
       destination: this.destination,
       attendeesCount: this.attendeesCount,

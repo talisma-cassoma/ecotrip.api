@@ -64,15 +64,21 @@ export default class RoomsController {
     socket: Socket,
     { user, room }: { user: Partial<Attendee>; room: Partial<Room> }
   ): void {
+
+    // console.log('[RoomsController] joinRoom called with', {
+    //   user,
+    //   room,
+    // });
+
     const userId = (user.id = socket.id);
     const roomId = room.id ?? '';
 
     const updatedUser = this.#updateGlobalUserData(userId, user, roomId);
     const updatedRoom = this.#joinUserRoom(socket, updatedUser, room);
 
-    console.log(
-      `[RoomsController] User ${userId} joined room ${JSON.stringify(updatedRoom.toJSON())}`
-    );
+    // console.log(
+    //   `[RoomsController] User: ${JSON.stringify(updatedUser.toJSON())} joined room :${JSON.stringify(updatedRoom.toJSON())}`
+    // );
 
     // A notificação para o LobbyController acontece via observer → roomsPubSub
     this.#replyWithActiveUsers(socket, updatedRoom.users);
@@ -94,7 +100,7 @@ export default class RoomsController {
 
     if (!room) return;
 
-    console.log(`[RoomsController] User ${userId} disconnected from room ${roomId}`);
+    //console.log(`[RoomsController] User ${userId} disconnected from room ${roomId}`);
     room.removeUser(userId);
 
     if (room.owner.id === userId) {
@@ -112,10 +118,6 @@ export default class RoomsController {
     const roomId = room.id ?? '';
     const existingRoom = this.rooms.get(roomId);
 
-    console.log("existingRoom:", existingRoom?.origin);
-    console.log("room.origin:", room.origin);
-    console.log("room.destination:", room.destination);
-
     const owner: Attendee = existingRoom ? existingRoom.owner : user;
     const users: Set<Attendee> = existingRoom ? new Set(existingRoom.users) : new Set();
 
@@ -129,7 +131,9 @@ export default class RoomsController {
       destination: room.destination ?? existingRoom?.destination,
       status: room.status ?? existingRoom?.status ?? "requested",
       assignedDriver: room.assignedDriver ?? existingRoom?.assignedDriver ?? null,
-      price: room.price ?? existingRoom?.price,
+      price: room.price,
+      distance: room.distance ?? existingRoom?.distance,
+      duration: room.duration ?? existingRoom?.duration,
       created_at: existingRoom?.created_at ?? new Date(),
       updated_at: new Date(),
     });
@@ -155,7 +159,7 @@ export default class RoomsController {
 
   /** Envia lista de usuários ativos da room para o socket atual */
   #replyWithActiveUsers(socket: Socket, users: Set<Attendee>): void {
-    socket.emit(constants.event.LOBBY_UPDATED, [...users].map((u) => u.toJSON()));
+    socket.emit(constants.event.JOIN_ROOM, [...users].map((u) => u.toJSON()));
   }
 
   /** Retorna apenas métodos públicos (para integração com socketServer) */

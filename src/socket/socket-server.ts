@@ -27,6 +27,9 @@ export default class SocketServer {
       cors: { origin: "*", credentials: false },
     });
   }
+  get io(): Server {
+    return this.#io;
+  }
 
   attachEvents({ routeConfig }: AttachEventsParams) {
     for (const routes of routeConfig) {
