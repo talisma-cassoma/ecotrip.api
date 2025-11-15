@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker';
+import { nanoid } from 'nanoid';
 
 const prisma = new PrismaClient();
 
@@ -13,7 +14,8 @@ async function main() {
         name: faker.person.fullName(),
         email: faker.internet.email(),
         password: faker.internet.password(),
-        role: 'passenger'
+        role: 'passenger',
+        public_id: nanoid(12),
       }
     });
   }
@@ -23,6 +25,7 @@ async function main() {
     const user = await prisma.user.create({
       data: {
         name: faker.person.fullName(),
+        public_id: nanoid(12),
         email: faker.internet.email(),
         password: faker.internet.password(),
         role: 'driver',
@@ -53,7 +56,8 @@ async function main() {
     await prisma.trip.create({
       data: {
         name: `Viagem ${i + 1}`,
-        source: {
+        public_id: nanoid(12),
+        origin: {
           name: faker.location.city(),
           location: {
             lat: faker.location.latitude(),
@@ -69,7 +73,7 @@ async function main() {
         },
         distance: faker.number.float({ min: 3, max: 30 }),
         duration: faker.number.float({ min: 5, max: 60 }),
-        freight: faker.number.float({ min: 150, max: 800 }),
+        price: faker.number.float({ min: 150, max: 800 }),
         directions: {},
         status: faker.helpers.arrayElement(['requested', 'completed', 'in_progress']),
         passenger_id: passenger.id,

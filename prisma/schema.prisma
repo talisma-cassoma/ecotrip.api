@@ -32,6 +32,7 @@ enum TripStatus {
 
 model User {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  public_id  String   @unique
   name       String
   email      String   @unique
   password   String
@@ -41,9 +42,9 @@ model User {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  driver        Driver?        @relation("driver")
+  driver        Driver?            @relation("driver")
   refreshTokens UserRefreshToken[] @relation("user_refresh_tokens")
-  trips         Trip[]         @relation("passenger_trips")
+  trips         Trip[]             @relation("passenger_trips")
 
   TripCancellation TripCancellation[] @relation("user_cancel_trip")
 }
@@ -61,7 +62,7 @@ model UserRefreshToken {
 model TripCancellation {
   id      String @id @default(auto()) @map("_id") @db.ObjectId
   trip    Trip   @relation("trip_cancellation", fields: [id], references: [id])
-  trip_id String 
+  trip_id String
 
   cancelledBy Role
   reason      String?
@@ -74,8 +75,8 @@ model TripCancellation {
 }
 
 model Driver {
-  id      String @id @default(auto()) @map("_id") @db.ObjectId 
-  user    User   @relation("driver", fields: [id], references: [id])
+  id   String @id @default(auto()) @map("_id") @db.ObjectId
+  user User   @relation("driver", fields: [id], references: [id])
 
   car_model       String
   car_plate       String
@@ -93,13 +94,14 @@ model Driver {
 
 model Trip {
   id          String     @id @default(auto()) @map("_id") @db.ObjectId
-  token   String     @unique @default(uuid()) // ou cuid()
+  public_id   String     @unique
+  token       String     @unique @default(uuid()) // ou cuid()
   name        String?
-  source      Place
+  origin      Place
   destination Place
   distance    Float
   duration    Float
-  freight     Float
+  price       Float
   directions  Json
   status      TripStatus
 
@@ -121,7 +123,7 @@ type Place {
   name     String
   location Coord
 }
- 
+
 type Point {
   location   Coord
   created_at DateTime @default(now())

@@ -1,4 +1,4 @@
-// attendee.ts
+// User.ts
 export type PassengerRole = {
   type: "passenger";
 };
@@ -17,8 +17,9 @@ export type DriverRole = {
 
 export type UserRole = PassengerRole | DriverRole;
 
-export interface AttendeeProps {
+export interface UserProps {
   id?: string;
+  soketId?: string;
   username?: string;
   email?: string;
   image?: string;
@@ -30,38 +31,38 @@ export interface AttendeeProps {
   refresh_token?: string;
 }
 
-export default class Attendee {
+export default class User {
   id: string;
+  soketId? : string;
   username: string;
   email?: string;
   image?: string;
   telephone?: string;
   role: UserRole;
   peerId?: string;
-  roomId: string;
   access_token?: string;
   refresh_token?: string;
 
   constructor({
     id = "",
     username = "",
+    soketId,
     email,
     image,
     telephone,
     role = { type: "passenger" } as PassengerRole,
     peerId = "",
-    roomId = "",
     access_token,
     refresh_token,
-  }: AttendeeProps = {}) {
+  }: UserProps = {}) {
     this.id = id;
+    this.soketId = soketId;
     this.username = username ?? "";
     this.email = email;
     this.image = image;
     this.telephone = telephone;
     this.role = role;
     this.peerId = peerId;
-    this.roomId = roomId;
     this.access_token = access_token;
     this.refresh_token = refresh_token;
   }
@@ -84,7 +85,6 @@ export default class Attendee {
       telephone: this.telephone,
       role: this.role,
       peerId: this.peerId,
-      roomId: this.roomId,
     };
   }
 }

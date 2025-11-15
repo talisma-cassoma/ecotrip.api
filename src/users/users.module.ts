@@ -12,9 +12,11 @@ import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { race } from 'rxjs';
 //import { RabbitmqService } from 'src/rabbitmq/rabbitmq.service';
+import { PubsubModule } from 'src/pubsub/pubsub.module';
 
 
 @Module({
+  imports: [PubsubModule],
   controllers: [DriverController, PassengerController, NewTripController, UsersController],
   providers: [
     DriverService,  
@@ -23,6 +25,7 @@ import { race } from 'rxjs';
     SupabaseAuthService,
     JwtService,
     UsersService,
+    
     //RabbitmqService
   ]
 })

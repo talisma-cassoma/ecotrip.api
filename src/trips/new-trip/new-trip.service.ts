@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Inject,
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -9,14 +10,18 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Role } from '@prisma/client';
 import { UnauthorizedException, NotFoundException } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
+import { nanoid } from 'nanoid';
+import { constants } from '../../socket/constants';
 
 @Injectable()
 export class NewTripService {
-  constructor(private prisma: PrismaService, private eventEmitter: EventEmitter2) { }
+  constructor(
+    private prisma: PrismaService, 
+    @Inject('ROOMS_PUBSUB') private roomsPubSub: EventEmitter2) { }
 
   async createTrip(data: any): Promise<{ tripId: string, message: string }> {
     try {
-      // Validação mínima (opcional)
+      // Validação mínima
       if (!data.origin || !data.destination || !data.email || !data.price) {
         throw new BadRequestException('Campos obrigatórios ausentes.');
       }
@@ -25,27 +30,53 @@ export class NewTripService {
         where: { email: data.email },
       });
 
+      if (!passenger) {
+        throw new BadRequestException('Passageiro não encontrado.');
+      }
+
+      const publicId = nanoid(12);
+
       const createdTrip = await this.prisma.trip.create({
         data: {
-          source: data.origin,
+          public_id: publicId,
+          origin: data.origin,
           destination: data.destination,
           distance: data.distance,
           duration: data.duration,
-          freight: data.price,
-          directions: data.directions ?? {}, // se não vier, salva vazio
+          price: data.price,
+          directions: data.directions ?? {},
           status: 'requested',
           passenger_id: passenger.id,
         },
       });
 
-      // comunicate the event to driver gateway === o quivalente a usar um system de fila 
-      this.eventEmitter.emit('trip.created');
+      // Evento compatível com a classe Room
+      this.roomsPubSub.emit(constants.event.TRIP_CREATED, {
+        id: createdTrip.public_id,
+        owner: {
+          id: passenger.id,
+          username: passenger.name,
+          role: passenger.role,
+          image: passenger.image,
+          telephone: passenger.telephone,
+        },
+        interestedDrivers: [],          // Set será criado no Room.ts
+        assignedDriver: null,
+        distance: createdTrip.distance,
+        duration: createdTrip.duration,
+        origin: createdTrip.origin,
+        destination: createdTrip.destination,
+        price: createdTrip.price,
+        status: "requested",
+        created_at: createdTrip.created_at,
+        updated_at: createdTrip.updated_at,
+      });
 
-      //const trip_token = await this.generatePublicTripToken(createdTrip.token)
       return {
-        tripId: createdTrip.token,
+        tripId: createdTrip.public_id,
         message: 'Viagem criada com sucesso.',
       };
+
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
@@ -55,6 +86,7 @@ export class NewTripService {
       throw new InternalServerErrorException('Erro ao criar a viagem.');
     }
   }
+
 
   async getNewTrips(): Promise<TripDto[]> {
     const requestedTrips = await this.prisma.trip.findMany({
@@ -72,14 +104,14 @@ export class NewTripService {
       status: trip.status,
       distance: trip.distance,
       duration: trip.duration,
-      freight: trip.freight,
+      price: trip.price,
       directions: trip.directions,
       passenger_name: trip.passenger.name,
-      source: {
-        name: trip.source.name,
+      origin: {
+        name: trip.origin.name,
         location: {
-          lat: trip.source.location.lat,
-          lng: trip.source.location.lng
+          lat: trip.origin.location.lat,
+          lng: trip.origin.location.lng
         }
       },
       destination: {
@@ -95,7 +127,7 @@ export class NewTripService {
     return newTripsDto
   }
 
-  async confirmTrip(trip_token: string, driver_email:string): Promise<TripDto> {
+  async confirmTrip(trip_token: string, driver_email: string): Promise<TripDto> {
 
     // let payload: jwt.JwtPayload = this.verifyPublicTripToken(trip_token);
 
@@ -108,10 +140,10 @@ export class NewTripService {
     console.log("email do driver: ", driver_email)
 
     const driver = await this.prisma.user.findUnique({
-      where:{
+      where: {
         email: driver_email
       }
-    }) 
+    })
     const updatedTrip = await this.prisma.trip.update({
       where: {
         id: trip.id,
@@ -137,14 +169,14 @@ export class NewTripService {
       status: updatedTrip.status,
       distance: updatedTrip.distance,
       duration: updatedTrip.duration,
-      freight: updatedTrip.freight,
+      price: updatedTrip.price,
       directions: updatedTrip.directions,
       driver_name: updatedTrip.driver.user.name,
-      source: {
-        name: updatedTrip.source.name,
+      origin: {
+        name: updatedTrip.origin.name,
         location: {
-          lat: updatedTrip.source.location.lat,
-          lng: updatedTrip.source.location.lng
+          lat: updatedTrip.origin.location.lat,
+          lng: updatedTrip.origin.location.lng
         }
       },
       destination: {

@@ -3,7 +3,7 @@ import { AppModule } from "./app.module";
 import SocketServer from "./socket/socket-server";
 import RoomsController from "./socket/controllers/roomController";
 import LobbyController from "./socket/controllers/lobbyController";
-import { EventEmitter } from "events";
+import { EventEmitter2 } from "@nestjs/event-emitter"; 
 import { constants } from "./socket/constants";
 
 async function bootstrap() {
@@ -16,21 +16,22 @@ async function bootstrap() {
   const socketServer = new SocketServer(port);
   socketServer.attachToHttpServer(server);
 
-  // 🔹 Canal interno de comunicação
-  const roomsPubSub = new EventEmitter();
+ // Canal de comunicação único para rooms
+const roomsPubSub = app.get('ROOMS_PUBSUB');
 
-  // 🔹 Controladores
-  const roomsController = new RoomsController({ roomsPubSub });
-  const lobbyController = new LobbyController({
-    activeRooms: roomsController.rooms,
-    roomsListener: roomsPubSub,
-  });
+// Controladores
+const roomsController = new RoomsController({ roomsPubSub });
+const lobbyController = new LobbyController({
+  activeRooms: roomsController.rooms,
+  roomsListener: roomsPubSub,
+});
 
-  // 🔹 Namespaces
-  const namespaces = {
-    room: { controller: roomsController, eventEmitter: new EventEmitter() },
-    lobby: { controller: lobbyController, eventEmitter: new EventEmitter() },
-  };
+// Namespaces usam o mesmo EventEmitter
+const namespaces = {
+  room: { controller: roomsController, eventEmitter: roomsPubSub },
+  lobby: { controller: lobbyController, eventEmitter: roomsPubSub },
+};
+
 
   // Conexão
   namespaces.room.eventEmitter.on(

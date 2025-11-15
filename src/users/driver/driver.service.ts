@@ -6,6 +6,7 @@ import { DriverDto } from './dto/driver.dto';
 import { hash } from "bcryptjs";
 import { JwtService } from "@nestjs/jwt";
 import { createNewUserAcessToken, createNewUserRefreshToken } from '../utils';
+import { nanoid } from 'nanoid';
 
 @Injectable()
 export class DriverService {
@@ -35,15 +36,15 @@ export class DriverService {
       name: trip.name ?? null,
       distance: trip.distance,
       duration: trip.duration,
-      freight: trip.freight,
+      price: trip.price,
       directions: trip.directions,
       driver_id: trip.driver_id ?? null,
       passenger_id: trip.passenger_id,
-      source: {
-        name: trip.source.name,
+      origin: {
+        name: trip.origin.name,
         location: {
-          lat: trip.source.location.lat,
-          lng: trip.source.location.lng,
+          lat: trip.origin.location.lat,
+          lng: trip.origin.location.lng,
         },
       },
       destination: {
@@ -75,6 +76,7 @@ export class DriverService {
 
     const newDriver = await this.prismaService.user.create({
       data: {
+        public_id: nanoid(12),
         name: driver.name,
         email: driver.email,
         password: hashedPassword,

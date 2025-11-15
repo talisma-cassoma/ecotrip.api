@@ -1,12 +1,13 @@
 import { Socket } from 'socket.io';
-import { EventEmitter } from 'events';
-import Attendee from '../entities/attendee';
+import { EventEmitter2 } from '@nestjs/event-emitter'; 
+import User, { UserRole } from '../entities/user';
 import Room from '../entities/room';
 import { constants } from '../constants';
 import CustomMap, { CustomMapObserver } from '../customMap';
+import { PrismaClient } from '@prisma/client';
 
 interface RoomsControllerOptions {
-  roomsPubSub: EventEmitter;
+  roomsPubSub: EventEmitter2;
 }
 
 /**
@@ -14,14 +15,15 @@ interface RoomsControllerOptions {
  * Notifica o LobbyController através de roomsPubSub.
  */
 export default class RoomsController {
+
   /** Cache global de usuários conectados */
-  #users: Map<string, Attendee> = new Map();
+  #users: Map<string, User> = new Map();
 
   /** Rooms em memória com observador para mudanças */
   rooms: CustomMap<string, Room, ReturnType<Room['toJSON']>>;
 
   /** Canal de eventos interno usado para sincronização com o LobbyController */
-  roomsPubSub: EventEmitter;
+  roomsPubSub: EventEmitter2;
 
   constructor({ roomsPubSub }: RoomsControllerOptions) {
     this.roomsPubSub = roomsPubSub;
@@ -30,6 +32,10 @@ export default class RoomsController {
       observer: this.#roomObserver(),
       customMapper: this.#mapRoom.bind(this),
     });
+
+    // 👇 LISTEN TO TRIP.CREATED
+    this.roomsPubSub.on(constants.event.TRIP_CREATED, this.#createRoomFromTrip.bind(this));
+    console.log('[RoomsController] initialized.', );
   }
 
   /** Observador que notifica o LobbyController */
@@ -58,30 +64,45 @@ export default class RoomsController {
     console.log('[RoomsController] disconnect!!', socket.id);
     this.#handleDisconnect(socket);
   }
+  async #createRoomFromTrip(data: Room): Promise<void> {
+    console.log('[RoomsController] Creating room from new trip:', data.id);
+
+    const existing = this.rooms.get(data.id);
+    if (existing) {
+      console.log('[RoomsController] Room already exists, skipping...');
+      return;
+    }
+ 
+    const updatedUser = this.#updateGlobalUserData(data.owner.id, data.owner, data.id);
+    this.#joinUserRoom(updatedUser, data);
+  }
 
   /** 🔹 Usuário entra em uma room */
-  joinRoom(
+  async joinRoom(
     socket: Socket,
-    { user, room }: { user: Partial<Attendee>; room: Partial<Room> }
-  ): void {
+    { user, room }: { user: Partial<User>; room: Partial<Room> }
+  ): Promise<void> {
 
     // console.log('[RoomsController] joinRoom called with', {
     //   user,
     //   room,
     // });
 
+
+    // 1. Verificar se room já existe no cache
     const userId = (user.id = socket.id);
     const roomId = room.id ?? '';
 
+
     const updatedUser = this.#updateGlobalUserData(userId, user, roomId);
-    const updatedRoom = this.#joinUserRoom(socket, updatedUser, room);
+    const updatedRoom = this.#joinUserRoom(updatedUser, room, socket);
 
     // console.log(
     //   `[RoomsController] User: ${JSON.stringify(updatedUser.toJSON())} joined room :${JSON.stringify(updatedRoom.toJSON())}`
     // );
 
-    // A notificação para o LobbyController acontece via observer → roomsPubSub
-    this.#replyWithActiveUsers(socket, updatedRoom.users);
+    // A notificação para o passageiro
+    this.#replyWithActiveUsers(socket, updatedRoom.interestedDrivers);
   }
 
   // ======================================================
@@ -91,42 +112,26 @@ export default class RoomsController {
   /** Lida com desconexão e limpeza */
   #handleDisconnect(socket: Socket): void {
     const userId = socket.id;
-    const user = this.#users.get(userId);
+    const user = this.#users.get(socket.id);
+    console.log('[RoomsController] Handling disconnect for user:', userId);
     if (!user) return;
 
-    const roomId = user.roomId;
-    const room = this.rooms.get(roomId);
-    this.#users.delete(userId);
-
-    if (!room) return;
-
-    //console.log(`[RoomsController] User ${userId} disconnected from room ${roomId}`);
-    room.removeUser(userId);
-
-    if (room.owner.id === userId) {
-      // Passenger saiu → encerra a room
-      this.rooms.delete(roomId);
-      console.log(`[RoomsController] Room ${roomId} closed (passenger disconnected)`);
-    } else {
-      // Driver saiu → apenas atualiza room (o observer notificará automaticamente)
-      this.rooms.set(roomId, room);
-    }
   }
 
   /** Cria ou atualiza uma sala existente */
-  #joinUserRoom(socket: Socket, user: Attendee, room: Partial<Room>): Room {
+  #joinUserRoom(user: User, room: Partial<Room>, socket?: Socket): Room {
     const roomId = room.id ?? '';
     const existingRoom = this.rooms.get(roomId);
 
-    const owner: Attendee = existingRoom ? existingRoom.owner : user;
-    const users: Set<Attendee> = existingRoom ? new Set(existingRoom.users) : new Set();
+    const owner: User = existingRoom ? existingRoom.owner : user;
+    const users: Set<User> = existingRoom ? new Set(existingRoom.interestedDrivers) : new Set();
 
     users.add(user);
 
     const updatedRoom = new Room({
       id: roomId,
       owner,
-      users,
+      interestedDrivers: users,
       origin: room.origin ?? existingRoom?.origin,
       destination: room.destination ?? existingRoom?.destination,
       status: room.status ?? existingRoom?.status ?? "requested",
@@ -140,15 +145,15 @@ export default class RoomsController {
 
 
     this.rooms.set(roomId, updatedRoom);
-    socket.join(roomId);
+    if (socket) socket.join(roomId);
 
     return updatedRoom;
   }
 
   /** Atualiza o cache global de usuários */
-  #updateGlobalUserData(userId: string, userData: Partial<Attendee> = {}, roomId = ''): Attendee {
+  #updateGlobalUserData(userId: string, userData: Partial<User> = {}, roomId = ''): User {
     const existing = this.#users.get(userId) ?? {};
-    const updated = new Attendee({
+    const updated = new User({
       ...existing,
       ...userData,
       roomId,
@@ -158,7 +163,7 @@ export default class RoomsController {
   }
 
   /** Envia lista de usuários ativos da room para o socket atual */
-  #replyWithActiveUsers(socket: Socket, users: Set<Attendee>): void {
+  #replyWithActiveUsers(socket: Socket, users: Set<User>): void {
     socket.emit(constants.event.JOIN_ROOM, [...users].map((u) => u.toJSON()));
   }
 

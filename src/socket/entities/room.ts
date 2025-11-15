@@ -1,5 +1,5 @@
 // room.ts
-import Attendee from "./attendee";
+import User from "./user";
 
 export type LocationPoint = {
   name: string;
@@ -14,9 +14,9 @@ export type TripStatus = "requested" | "offered" | "accepted" | "in_progress" | 
 
 export interface RoomProps {
   id?: string;
-  owner: Attendee;                 // passenger que criou a trip (owner)
-  users?: Set<Attendee>;           // passenger + múltiplos drivers que entraram (ofertas)
-  assignedDriver?: Attendee | null; // driver escolhido pelo passenger
+  owner: User;                 // passenger que criou a trip (owner)
+  interestedDrivers?: Set<User>;           // passenger + múltiplos drivers que entraram (ofertas)
+  assignedDriver?: User | null; // driver escolhido pelo passenger
   status?: TripStatus;
   distance?: number;
   duration?: number;
@@ -29,38 +29,36 @@ export interface RoomProps {
 
 export default class Room {
   id: string;
-  owner: Attendee;
-  users: Set<Attendee>;
-  assignedDriver?: Attendee | null;
+  owner: User;
+  interestedDrivers: Set<User>;
+  assignedDriver?: User | null;
   status: TripStatus;
-  price?: number;
-  distance?: number;
-  duration?: number;
-  origin?: LocationPoint;
-  destination?: LocationPoint;
+  price: number;
+  distance: number;
+  duration: number;
+  origin: LocationPoint;
+  destination: LocationPoint;
   created_at: Date;
   updated_at: Date;
 
   constructor({
     id = "",
     owner,
-    users = new Set<Attendee>(),
+    interestedDrivers = new Set<User>(),
     assignedDriver = null,
     status = "requested",
     price,
     distance,
     duration,
-    origin, 
+    origin,
     destination,
     created_at = new Date(),
     updated_at = new Date(),
-  }: Partial<RoomProps> & { owner: Attendee }) {
+  }: Partial<RoomProps> & { owner: User }) {
     this.id = id;
-    this.owner = new Attendee({ ...owner }); // owner is the passenger who requested
-    this.users = new Set(users);
-    // ensure owner exists in users set
-    this.users.add(this.owner);
-    this.assignedDriver = assignedDriver ? new Attendee({ ...assignedDriver }) : null;
+    this.owner = new User({ ...owner }); // owner is the passenger who requested
+    this.interestedDrivers = new Set(interestedDrivers);
+    this.assignedDriver = assignedDriver ? new User({ ...assignedDriver }) : null;
     this.status = status;
     this.origin = origin;
     this.price = price;
@@ -71,21 +69,22 @@ export default class Room {
     this.updated_at = updated_at;
   }
 
-  get attendeesCount(): number {
-    return this.users.size;
+  get UsersCount(): number {
+    return this.interestedDrivers.size;
   }
 
-  addUser(user: Attendee) {
-    user.roomId = this.id;
-    this.users.add(new Attendee({ ...user }));
+  addUser(user: User) {
+    if(user.isPassenger() && user.id !== this.owner.id ){
+      throw new Error("Only one passenger allowed per room");
+    }
+    this.interestedDrivers.add(new User({ ...user }));
     this.updated_at = new Date();
   }
 
-  removeUser(userId: string) {
-    for (const u of [...this.users]) {
+  removeDriver(userId: string) {
+    for (const u of [...this.interestedDrivers]) {
       if (u.id === userId) {
-        u.roomId = "";
-        this.users.delete(u);
+        this.interestedDrivers.delete(u);
         // if removed user was assigned driver, unassign
         if (this.assignedDriver && this.assignedDriver.id === userId) {
           this.assignedDriver = null;
@@ -100,20 +99,19 @@ export default class Room {
 
   // passenger selects a driver -> assign and remove other drivers
   assignDriver(driverId: string) {
-    const chosen = [...this.users].find((u) => u.id === driverId && u.isDriver());
+    const chosen = [...this.interestedDrivers].find((u) => u.id === driverId && u.isDriver());
     if (!chosen) {
       throw new Error("Driver not found in this room");
     }
 
-    this.assignedDriver = new Attendee({ ...chosen });
+    this.assignedDriver = new User({ ...chosen });
     this.status = "accepted";
     this.updated_at = new Date();
 
     // remove other drivers (keep owner and chosen driver)
-    for (const u of [...this.users]) {
+    for (const u of [...this.interestedDrivers]) {
       if (u.isDriver() && u.id !== driverId) {
-        this.users.delete(u);
-        u.roomId = "";
+        this.interestedDrivers.delete(u);
       }
     }
   }
@@ -158,8 +156,8 @@ export default class Room {
       duration: this.duration,
       origin: this.origin,
       destination: this.destination,
-      attendeesCount: this.attendeesCount,
-      users: [...this.users].map((u) => u.toJSON()),
+      UsersCount: this.UsersCount,
+      interestedDrivers: [...this.interestedDrivers].map((u) => u.toJSON()),
       created_at: this.created_at,
       updated_at: this.updated_at,
     };

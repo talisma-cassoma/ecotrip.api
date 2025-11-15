@@ -4,13 +4,13 @@ export class TripDto {
     status?: string;
     distance: number;
     duration: number;
-    freight: number;
+    price: number;
     directions: any;
     driver_id?: string | null;
     driver_name?: string | null;
     passenger_id?: string;
     passenger_name?: string;
-    source: {
+    origin: {
         name: String;
         location: {
             lat: number;

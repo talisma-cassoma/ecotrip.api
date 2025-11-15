@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io';
-import { EventEmitter } from 'events';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { constants } from '../constants';
 import CustomMap from '../customMap';
 import Room from '../entities/room';
@@ -11,12 +11,12 @@ import Room from '../entities/room';
  */
 interface LobbyControllerOptions {
   activeRooms: CustomMap<string, Room, ReturnType<Room['toJSON']>>;
-  roomsListener: EventEmitter;
+  roomsListener: EventEmitter2;
 }
 
 export default class LobbyController {
   private activeRooms: CustomMap<string, Room, ReturnType<Room['toJSON']>>;
-  private roomsListener: EventEmitter;
+  private roomsListener: EventEmitter2;
   private lobbySockets: Set<Socket> = new Set();
 
   constructor({ activeRooms, roomsListener }: LobbyControllerOptions) {

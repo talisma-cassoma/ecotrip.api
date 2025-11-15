@@ -12,6 +12,7 @@ import { createNewUserAcessToken, createNewUserRefreshToken } from '../utils';
 import { NewTripService } from 'src/trips/new-trip/new-trip.service';
 import * as jwt from 'jsonwebtoken';
 //import { RabbitmqService } from 'src/rabbitmq/rabbitmq.service';
+import { nanoid } from 'nanoid';
 
 @Injectable()
 export class PassengerService {
@@ -38,10 +39,12 @@ export class PassengerService {
     }
 
     const hashedPassword = await hash(passenger.password, 10);
+     const publicId = nanoid(12);
 
     const newPassenger = await this.prismaService.user.create({
       data: {
         name: passenger.name,
+        public_id: publicId,
         email: passenger.email,
         password: hashedPassword,
         role: 'passenger',

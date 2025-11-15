@@ -10,6 +10,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { SupasbaseModule } from './supasbase/supasbase.module';
 import { AuthModule } from './auth/auth.module';
 //import { RabbitmqService } from './rabbitmq/rabbitmq.service';
+import { PubsubModule } from './pubsub/pubsub.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { AuthModule } from './auth/auth.module';
     EventEmitterModule.forRoot(),
     SupasbaseModule,
     AuthModule,
+    PubsubModule,
   ],
   controllers: [AppController],
   providers: [AppService, 

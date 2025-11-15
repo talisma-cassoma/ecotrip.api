@@ -12,6 +12,8 @@ export const constants = {
     //Atualizações específicas de trip rooms
     SELECT_DRIVER:'selectDriver',
     LEAVE_ROOM: 'leaveRoom',        // novo — quando alguém sai manualmente
+
+    TRIP_CREATED: 'tripCreated',
   
   }
 }
